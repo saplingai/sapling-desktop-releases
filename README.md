@@ -1,2 +1,5 @@
 # sapling-desktop-releases
-sapling-desktop
+
+Copyright 2024-present Sapling Intelligence, Inc.
+All Rights Reserved.
+Unauthorized copying or sharing of files associated with this repository via any medium is strictly prohibited.
