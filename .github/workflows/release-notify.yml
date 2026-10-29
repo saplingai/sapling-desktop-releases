@@ -1,0 +1,36 @@
+name: Release notice
+
+# Posts a one-line Slack notice when a release is published in this repo. The
+# desktop apps ship as release assets here, and the Hazel update server serves
+# the latest non-draft release to installed clients, so "published" is the
+# moment users start receiving a version. Draft releases do not trigger this;
+# publishing (un-drafting) one does.
+#
+# Setup: repo secret SLACK_DEPLOY_WEBHOOK = a Slack incoming webhook URL.
+# Without the secret the job is a no-op.
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Notify Slack
+        env:
+          SLACK_DEPLOY_WEBHOOK: ${{ secrets.SLACK_DEPLOY_WEBHOOK }}
+          TAG: ${{ github.event.release.tag_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+          ASSET_NAMES: ${{ toJSON(github.event.release.assets.*.name) }}
+          URL: ${{ github.event.release.html_url }}
+        run: |
+          [ -n "$SLACK_DEPLOY_WEBHOOK" ] || exit 0
+          kind=release
+          if [ "$PRERELEASE" = true ]; then kind=pre-release; fi
+          n="$(jq -r 'length' <<<"$ASSET_NAMES")"
+          msg="sapling-desktop ${kind} ${TAG} published (${n} assets): ${URL}"
+          jq -n --arg t "$msg" '{text: $t}' | curl -sf -X POST -H 'Content-Type: application/json' -d @- "$SLACK_DEPLOY_WEBHOOK" > /dev/null
